@@ -96,5 +96,15 @@ document.getElementById("status").textContent=navigator.onLine?"Online":"Offline
 window.addEventListener("online",()=>document.getElementById("status").textContent="Online");
 window.addEventListener("offline",()=>document.getElementById("status").textContent="Offline");
 </script>
+
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/tomoro-event-pos/sw.js")
+      .then(() => console.log("Service Worker aktif"))
+      .catch((error) => console.error("Service Worker gagal:", error));
+  });
+}
+</script>
 </body>
 </html>
