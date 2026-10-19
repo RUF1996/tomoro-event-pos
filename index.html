@@ -46,6 +46,20 @@ th{background:#f8f8f8}
 .action{padding:7px 9px;background:#eee;font-size:12px}
 .danger{background:#fee2e2;color:#991b1b}
 @media(max-width:760px){main{grid-template-columns:1fr;padding:10px}nav{padding:10px;flex-wrap:wrap}.panel{padding:10px}.stats{grid-template-columns:1fr 1fr}.menu{grid-template-columns:repeat(2,minmax(0,1fr))}header{font-size:14px}.total{font-size:21px}}
+#receiptPrint{display:none}
+@media print{
+ @page{size:58mm auto;margin:3mm}
+ body{background:#fff!important;color:#000!important;font:11px/1.35 monospace!important;margin:0!important;padding:0!important}
+ body.print-mode>*:not(#receiptPrint){display:none!important}
+ body.print-mode #receiptPrint{display:block!important;width:52mm;margin:0 auto;padding:0}
+ #receiptPrint *{font-family:monospace!important;color:#000!important}
+ .receipt-center{text-align:center}
+ .receipt-title{font-size:15px;font-weight:bold}
+ .receipt-line{border-top:1px dashed #000;margin:7px 0}
+ .receipt-item{display:flex;justify-content:space-between;gap:4px}
+ .receipt-small{font-size:10px}
+ .receipt-total{font-size:13px;font-weight:bold}
+}
 </style>
 </head>
 <body>
@@ -110,6 +124,7 @@ th{background:#f8f8f8}
 </section>
 </div>
 
+<div id="receiptPrint" aria-hidden="true"></div>
 <script>
 const products=[
  ["P001","Tomoro Aren Latte",25000],
@@ -154,6 +169,7 @@ function checkout(){
  notice("Transaksi "+tx.id+" tersimpan di perangkat. Menyiapkan sinkronisasi…");
  renderHistory();renderRecap();syncPendingTransactions();
  alert("Transaksi tersimpan di perangkat.\nID: "+tx.id+"\nTotal: "+rupiah(total));
+ if(confirm("Transaksi berhasil disimpan. Cetak struk sekarang?"))printReceipt(tx.id);
 }
 function syncPendingTransactions(){
  if(!navigator.onLine||syncRunning)return;
@@ -204,9 +220,42 @@ function renderHistory(){
   const detail=(tx.items||[]).map(i=>`${escapeHtml(i.name||productName(i.id))} × ${i.qty}`).join("<br>");
   const status=tx.synced?'<span class="pill ok">Tersinkron</span>':'<span class="pill pending">Tertunda</span>';
   // Synced transactions cannot be deleted here because deleting local data would not remove the Spreadsheet row.
-  const action=tx.synced?'<button class="action" disabled title="Data Spreadsheet tidak dihapus oleh tombol ini">Tersinkron</button>':`<button class="action danger" onclick="deleteLocalTransaction('${escapeAttr(tx.id)}')">Hapus lokal</button>`;
+  const action=`<button class="action" onclick="printReceipt('${escapeAttr(tx.id)}')">Cetak struk</button> `+(tx.synced?'<button class="action" disabled title="Data Spreadsheet tidak dihapus oleh tombol ini">Tersinkron</button>':`<button class="action danger" onclick="deleteLocalTransaction('${escapeAttr(tx.id)}')">Hapus lokal</button>`);
   return `<tr><td>${dateText(tx.time)}</td><td>${escapeHtml(tx.id)}</td><td>${detail}</td><td>${escapeHtml(tx.payment)}</td><td>${rupiah(tx.total)}</td><td>${escapeHtml(tx.cashier||"KASIR")}</td><td>${status}</td><td>${action}</td></tr>`;
  }).join("")||'<tr><td colspan="8">Belum ada transaksi yang cocok.</td></tr>';
+}
+function printReceipt(id){
+ const tx=readTransactions().find(t=>t.id===id);
+ if(!tx){alert("Transaksi tidak ditemukan di perangkat ini.");return}
+ const items=(tx.items||[]).map(i=>{
+  const p=products.find(p=>p[0]===i.id);
+  const price=Number(i.price||(p?p[2]:0)),qty=Number(i.qty||0);
+  return `<div style="margin:5px 0"><div>${escapeHtml(i.name||productName(i.id))}</div><div class="receipt-item"><span>${qty} x ${rupiah(price)}</span><span>${rupiah(price*qty)}</span></div></div>`;
+ }).join("");
+ document.getElementById("receiptPrint").innerHTML=`
+ <div class="receipt-center">
+  <div class="receipt-title">TOMORO COFFEE</div>
+  <div>EVENT POS</div>
+  <div class="receipt-small">Terima kasih atas pembelian Anda</div>
+ </div>
+ <div class="receipt-line"></div>
+ <div class="receipt-small">ID: ${escapeHtml(tx.id)}</div>
+ <div class="receipt-small">Waktu: ${escapeHtml(dateText(tx.time))}</div>
+ <div class="receipt-small">Kasir: ${escapeHtml(tx.cashier||"KASIR")}</div>
+ <div class="receipt-line"></div>
+ ${items}
+ <div class="receipt-line"></div>
+ <div class="receipt-item receipt-total"><span>TOTAL</span><span>${rupiah(tx.total)}</span></div>
+ <div class="receipt-item"><span>Pembayaran</span><span>${escapeHtml(tx.payment||"-")}</span></div>
+ ${tx.payment==="CASH"?`<div class="receipt-item"><span>Uang diterima</span><span>${rupiah(tx.cash)}</span></div><div class="receipt-item"><span>Kembalian</span><span>${rupiah(tx.change)}</span></div>`:""}
+ <div class="receipt-line"></div>
+ <div class="receipt-center receipt-small">Simpan struk ini sebagai bukti pembelian.</div>
+ <div class="receipt-center">Terima kasih!</div>`;
+ document.body.classList.add("print-mode");
+ const cleanup=()=>{document.body.classList.remove("print-mode");window.removeEventListener("afterprint",cleanup)};
+ window.addEventListener("afterprint",cleanup);
+ window.print();
+ setTimeout(()=>document.body.classList.remove("print-mode"),2000);
 }
 function deleteLocalTransaction(id){
  const txs=readTransactions(),tx=txs.find(t=>t.id===id);
