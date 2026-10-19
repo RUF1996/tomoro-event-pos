@@ -205,6 +205,64 @@ function updateSyncBadge(){
  const pending=readTransactions().filter(t=>!t.synced).length;
  document.getElementById("status").textContent=(navigator.onLine?"Online":"Offline")+" · "+pending+" tertunda";
 }
+ function refreshFromSpreadsheet(){
+  if(!navigator.onLine) return;
+
+  const callbackName="tomoroStateCallback_"+Date.now();
+  const script=document.createElement("script");
+  let finished=false;
+
+  const finish=()=>{
+    if(finished)return;
+    finished=true;
+    delete window[callbackName];
+    script.remove();
+  };
+
+  window[callbackName]=function(result){
+    finish();
+
+    if(!result || result.success!==true || !Array.isArray(result.history)){
+      notice("Gagal memperbarui riwayat dari Spreadsheet.");
+      return;
+    }
+
+    const serverIds=new Set(
+      result.history.map(tx=>String(tx.transactionId))
+    );
+
+    const local=readTransactions();
+    const filtered=local.filter(tx=>
+      tx.synced!==true || serverIds.has(String(tx.id))
+    );
+
+    if(filtered.length!==local.length){
+      saveTransactions(filtered);
+    }
+
+    renderHistory();
+    renderRecap();
+    updateSyncBadge();
+  };
+
+  const params=new URLSearchParams({
+    action:"state",
+    callback:callbackName
+  });
+
+  script.src=APPS_SCRIPT_URL+"?"+params.toString();
+  script.onerror=()=>{
+    finish();
+  };
+
+  document.body.appendChild(script);
+
+  setTimeout(()=>{
+    if(!finished){
+      finish();
+    }
+  },15000);
+}
 function showTab(tab){
  ["kasir","riwayat","rekap"].forEach(t=>{document.getElementById("view"+t.charAt(0).toUpperCase()+t.slice(1)).classList.toggle("hidden",t!==tab);document.getElementById("tab"+t.charAt(0).toUpperCase()+t.slice(1)).classList.toggle("active",t===tab)});
  if(tab==="riwayat")renderHistory();if(tab==="rekap")renderRecap();
@@ -279,8 +337,8 @@ function productName(id){const p=products.find(x=>x[0]===id);return p?p[1]:id}
 function escapeHtml(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function escapeAttr(s){return String(s??"").replace(/[^A-Za-z0-9_-]/g,"")}
 document.getElementById("cashier").value=localStorage.getItem(CASHIER_KEY)||"";
-renderMenu();renderCart();paymentChanged();renderHistory();renderRecap();updateSyncBadge();
-window.addEventListener("online",()=>{updateSyncBadge();notice("Internet terdeteksi. Memeriksa transaksi yang tertunda…");syncPendingTransactions()});
+renderMenu();renderCart();paymentChanged();renderHistory();renderRecap();updateSyncBadge();setTimeout(refreshFromSpreadsheet,1500);
+window.addEventListener("online",()=>{updateSyncBadge();notice("Koneksi internet terdeteksi. Memeriksa transaksi yang tertunda...");syncPendingTransactions();refreshFromSpreadsheet();});
 window.addEventListener("offline",()=>{updateSyncBadge();notice("Mode offline aktif. Transaksi akan disimpan di perangkat.")});
 if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("/tomoro-event-pos/sw.js").then(()=>console.log("Service Worker aktif")).catch(e=>console.error("Service Worker gagal:",e)))}
 </script>
