@@ -77,19 +77,129 @@ function renderCart(){
  document.getElementById("total").textContent=rupiah(getTotal());
 }
 function clearCart(){cart={};renderCart();document.getElementById("notice").textContent="Keranjang dikosongkan.";}
-function checkout(){
- if(!Object.keys(cart).length){alert("Pilih menu terlebih dahulu.");return;}
- const payment=document.getElementById("payment").value;
- const total=getTotal(),cash=payment==="CASH"?Number(document.getElementById("cash").value||0):total;
- if(payment==="CASH"&&cash<total){alert("Uang diterima kurang dari total.");return;}
- const tx={id:"OFF-"+Date.now()+"-"+Math.random().toString(36).slice(2,8),
- time:new Date().toISOString(),payment,items:products.filter(p=>cart[p[0]]).map(p=>({id:p[0],name:p[1],price:p[2],qty:cart[p[0]]})),
- total,cash,change:cash-total,synced:false};
- const saved=JSON.parse(localStorage.getItem(KEY)||"[]");
- saved.push(tx);localStorage.setItem(KEY,JSON.stringify(saved));
- cart={};renderCart();document.getElementById("cash").value="";
- document.getElementById("notice").textContent="Transaksi tersimpan di perangkat. Belum tersinkron ke Spreadsheet.";
- alert("Transaksi tersimpan di perangkat.");
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxEKfl9XlMUho2oNDRnFSQUEd-ra81WQsXpXfJ76C_AhSKAllWKx0BQ12wNpVCeed2cNg/exec";
+
+let syncRunning = false;
+
+function syncPendingTransactions() {
+  if (!navigator.onLine || syncRunning) return;
+
+  const saved = JSON.parse(localStorage.getItem(KEY) || "[]");
+  const pending = saved.find(tx => !tx.synced);
+
+  if (!pending) return;
+
+  syncRunning = true;
+
+  const payload = {
+    transactionId: pending.id,
+    paymentMethod: pending.payment,
+    items: pending.items.map(item => ({
+      id: item.id,
+      qty: item.qty
+    })),
+    cashReceived: pending.cash,
+    cashier: "KASIR"
+  };
+
+  const callbackName = "tomoroSyncCallback";
+
+  window[callbackName] = function(result) {
+    delete window[callbackName];
+    script.remove();
+    syncRunning = false;
+
+    if (result && result.success === true) {
+      const latest = JSON.parse(localStorage.getItem(KEY) || "[]");
+      const transaction = latest.find(tx => tx.id === pending.id);
+
+      if (transaction) {
+        transaction.synced = true;
+        localStorage.setItem(KEY, JSON.stringify(latest));
+      }
+
+      document.getElementById("notice").textContent =
+        "Transaksi berhasil disinkronkan ke Spreadsheet.";
+
+      syncPendingTransactions();
+    } else {
+      document.getElementById("notice").textContent =
+        "Sinkronisasi gagal. Transaksi tetap tersimpan di perangkat.";
+    }
+  };
+
+  const script = document.createElement("script");
+  const params = new URLSearchParams({
+    action: "sync",
+    callback: callbackName,
+    payload: JSON.stringify(payload)
+  });
+
+  script.src = APPS_SCRIPT_URL + "?" + params.toString();
+
+  script.onerror = function() {
+    delete window[callbackName];
+    script.remove();
+    syncRunning = false;
+
+    document.getElementById("notice").textContent =
+      "Gagal terhubung ke Spreadsheet. Transaksi tetap tersimpan di perangkat.";
+  };
+
+  document.body.appendChild(script);
+}
+
+window.addEventListener("online", syncPendingTransactions);
+function checkout() {
+  if (!Object.keys(cart).length) {
+    alert("Pilih menu terlebih dahulu.");
+    return;
+  }
+
+  const payment = document.getElementById("payment").value;
+  const total = getTotal();
+  const cash = payment === "CASH"
+    ? Number(document.getElementById("cash").value || 0)
+    : total;
+
+  if (payment === "CASH" && cash < total) {
+    alert("Uang diterima kurang dari total.");
+    return;
+  }
+
+  const tx = {
+    id: "OFF-" + Date.now() + "-" +
+      Math.random().toString(36).slice(2, 8),
+    time: new Date().toISOString(),
+    payment: payment,
+    items: products
+      .filter(p => cart[p[0]])
+      .map(p => ({
+        id: p[0],
+        name: p[1],
+        price: p[2],
+        qty: cart[p[0]]
+      })),
+    total: total,
+    cash: cash,
+    change: cash - total,
+    synced: false
+  };
+
+  const saved = JSON.parse(localStorage.getItem(KEY) || "[]");
+  saved.push(tx);
+  localStorage.setItem(KEY, JSON.stringify(saved));
+
+  cart = {};
+  renderCart();
+  document.getElementById("cash").value = "";
+
+  document.getElementById("notice").textContent =
+    "Transaksi tersimpan di perangkat. Menyiapkan sinkronisasi...";
+
+  alert("Transaksi tersimpan di perangkat.");
+
+  syncPendingTransactions();
 }
 renderMenu();renderCart();
 document.getElementById("status").textContent=navigator.onLine?"Online":"Offline";
