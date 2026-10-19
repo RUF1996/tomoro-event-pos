@@ -1,51 +1,115 @@
 <!doctype html>
 <html lang="id">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#f5c400">
-  <title>TOMORO Event POS</title>
-  <style>
-    *{box-sizing:border-box}
-    body{margin:0;font:16px Arial,sans-serif;background:#f5f5f5;color:#222}
-    header{background:#f5c400;padding:14px 18px;font-weight:800;display:flex;justify-content:space-between}
-    main{max-width:1100px;margin:auto;padding:16px;display:grid;grid-template-columns:1.5fr 1fr;gap:16px}
-    section{background:white;border-radius:12px;padding:16px;box-shadow:0 2px 8px #0001}
-    h2{margin:0 0 12px;font-size:20px}
-    .menu{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-    button{cursor:pointer;border:0;border-radius:9px;padding:12px;font-weight:700}
-    .item{background:#fff8d6;border:1px solid #ead36a;text-align:left}
-    .item small{display:block;margin-top:6px;font-weight:400}
-    .row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid #eee}
-    .qty button{padding:5px 10px;background:#eee}
-    .total{font-size:22px;font-weight:800;margin:16px 0}
-    select,input{width:100%;padding:11px;border:1px solid #ccc;border-radius:8px;margin:6px 0 12px}
-    .pay{background:#222;color:white;width:100%;font-size:17px}
-    .clear{background:#eee}
-    #notice{margin-top:12px;font-size:14px}
-    @media(max-width:700px){main{grid-template-columns:1fr}.menu{grid-template-columns:repeat(2,minmax(0,1fr))}}
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#f5c400">
+<title>TOMORO Event POS</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font:15px Arial,sans-serif;background:#f3f4f6;color:#222}
+header{background:#f5c400;padding:14px 18px;font-weight:800;display:flex;justify-content:space-between;align-items:center;gap:12px;position:sticky;top:0;z-index:5}
+.badge{font-size:12px;background:#222;color:white;padding:6px 9px;border-radius:20px;white-space:nowrap}
+nav{display:flex;gap:8px;max-width:1200px;margin:auto;padding:12px 16px 0}
+nav button{background:#e5e7eb;color:#222}
+nav button.active{background:#222;color:white}
+main{max-width:1200px;margin:auto;padding:16px;display:grid;grid-template-columns:1.15fr 1fr;gap:16px}
+section{background:white;border-radius:12px;padding:16px;box-shadow:0 2px 8px #0001;min-width:0}
+h2{margin:0 0 12px;font-size:20px}
+.menu{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+button{cursor:pointer;border:0;border-radius:9px;padding:11px;font-weight:700}
+button:disabled{opacity:.45;cursor:not-allowed}
+.item{background:#fff8d6;border:1px solid #ead36a;text-align:left;min-height:72px}
+.item small{display:block;margin-top:7px;font-weight:400}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid #eee}
+.qty{display:flex;align-items:center;gap:5px;white-space:nowrap}
+.qty button{padding:6px 10px;background:#eee}
+.total{font-size:23px;font-weight:800;margin:16px 0}
+label{display:block;font-weight:700;font-size:13px;margin-top:8px}
+select,input{width:100%;padding:11px;border:1px solid #ccc;border-radius:8px;margin:6px 0 10px;font:inherit}
+.pay{background:#222;color:white;width:100%;font-size:16px}
+.clear{background:#eee;width:100%;margin-top:8px}
+#notice{margin-top:12px;font-size:13px;line-height:1.5;padding:10px;border-radius:8px;background:#f8fafc}
+.muted{color:#666;font-size:12px;line-height:1.4}
+.hidden{display:none!important}
+.panel{max-width:1200px;margin:auto;padding:16px}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:14px}
+.stat{background:#fff8d6;border:1px solid #ead36a;padding:12px;border-radius:10px}
+.stat small{display:block;color:#555;margin-bottom:7px}
+.stat strong{font-size:18px}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px;min-width:700px}
+th,td{text-align:left;padding:10px;border-bottom:1px solid #eee;vertical-align:top}
+th{background:#f8f8f8}
+.pill{display:inline-block;padding:4px 7px;border-radius:12px;font-size:11px;font-weight:700}
+.ok{background:#dcfce7;color:#166534}.pending{background:#ffedd5;color:#9a3412}
+.action{padding:7px 9px;background:#eee;font-size:12px}
+.danger{background:#fee2e2;color:#991b1b}
+@media(max-width:760px){main{grid-template-columns:1fr;padding:10px}nav{padding:10px;flex-wrap:wrap}.panel{padding:10px}.stats{grid-template-columns:1fr 1fr}.menu{grid-template-columns:repeat(2,minmax(0,1fr))}header{font-size:14px}.total{font-size:21px}}
+</style>
 </head>
 <body>
-<header><span>TOMORO EVENT POS</span><span id="status">Kasir Offline</span></header>
+<header><span>TOMORO EVENT POS</span><span class="badge" id="status">Memeriksa koneksi…</span></header>
+<nav>
+<button id="tabKasir" class="active" onclick="showTab('kasir')">Kasir</button>
+<button id="tabRiwayat" onclick="showTab('riwayat')">Riwayat Transaksi</button>
+<button id="tabRekap" onclick="showTab('rekap')">Rekap Perangkat</button>
+</nav>
+
+<div id="viewKasir">
 <main>
-  <section>
-    <h2>Menu</h2>
-    <div class="menu" id="menu"></div>
-  </section>
-  <section>
-    <h2>Keranjang</h2>
-    <div id="cart"><p>Belum ada item.</p></div>
-    <div class="total">Total: <span id="total">Rp0</span></div>
-    <label>Metode pembayaran</label>
-    <select id="payment"><option>QRIS</option><option>CASH</option></select>
-    <label>Uang diterima (khusus CASH)</label>
-    <input id="cash" type="number" inputmode="numeric" placeholder="Nominal uang">
-    <button class="pay" onclick="checkout()">Simpan Transaksi</button>
-    <button class="clear" onclick="clearCart()" style="width:100%;margin-top:8px">Kosongkan Keranjang</button>
-    <div id="notice"></div>
-  </section>
+<section>
+<h2>Menu</h2>
+<p class="muted">Pilih menu untuk memasukkan ke keranjang.</p>
+<div class="menu" id="menu"></div>
+</section>
+<section>
+<h2>Keranjang</h2>
+<label for="cashier">Nama kasir</label>
+<input id="cashier" autocomplete="name" placeholder="Masukkan nama kasir">
+<div id="cart"><p>Belum ada item.</p></div>
+<div class="total">Total: <span id="total">Rp0</span></div>
+<label for="payment">Metode pembayaran</label>
+<select id="payment" onchange="paymentChanged()"><option value="QRIS">QRIS</option><option value="CASH">CASH</option></select>
+<div id="cashArea" class="hidden">
+<label for="cash">Uang diterima</label>
+<input id="cash" type="number" inputmode="numeric" min="0" placeholder="Nominal uang" oninput="renderChange()">
+<div class="row"><span>Kembalian</span><strong id="change">Rp0</strong></div>
+</div>
+<button class="pay" onclick="checkout()">Simpan Transaksi</button>
+<button class="clear" onclick="clearCart()">Kosongkan Keranjang</button>
+<div id="notice" role="status">Transaksi akan disimpan di perangkat terlebih dahulu. Saat internet tersedia, aplikasi mencoba mengirimnya ke Spreadsheet.</div>
+<p class="muted">Nama kasir disimpan pada perangkat dan dikirim saat sinkronisasi.</p>
+</section>
 </main>
+</div>
+
+<div id="viewRiwayat" class="panel hidden">
+<section>
+<h2>Riwayat Transaksi Perangkat</h2>
+<p class="muted">Menampilkan transaksi yang tersimpan di perangkat ini. Riwayat ini bukan pengganti riwayat penuh di Spreadsheet.</p>
+<input id="search" placeholder="Cari ID transaksi, menu, kasir, CASH/QRIS…" oninput="renderHistory()">
+<div class="tablewrap"><table><thead><tr><th>Waktu</th><th>ID Transaksi</th><th>Detail</th><th>Pembayaran</th><th>Total</th><th>Kasir</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="historyRows"></tbody></table></div>
+</section>
+</div>
+
+<div id="viewRekap" class="panel hidden">
+<section>
+<h2>Rekap Transaksi Perangkat</h2>
+<p class="muted">Rekap ini dihitung dari transaksi yang tersimpan di perangkat ini, termasuk transaksi yang sudah tersinkron. Untuk rekap seluruh perangkat, gunakan Spreadsheet.</p>
+<div class="stats">
+<div class="stat"><small>Total transaksi</small><strong id="sumCount">0</strong></div>
+<div class="stat"><small>Total omzet perangkat</small><strong id="sumTotal">Rp0</strong></div>
+<div class="stat"><small>Belum tersinkron</small><strong id="sumPending">0</strong></div>
+<div class="stat"><small>CASH · jumlah transaksi</small><strong id="cashCount">0</strong></div>
+<div class="stat"><small>CASH · omzet</small><strong id="cashTotal">Rp0</strong></div>
+<div class="stat"><small>QRIS · omzet / transaksi</small><strong id="qrisTotal">Rp0</strong><small id="qrisCount">0 transaksi</small></div>
+</div>
+<button class="pay" onclick="syncPendingTransactions()">Sinkronkan Transaksi Tertunda</button>
+<div id="recapNotice" class="muted" style="margin-top:10px"></div>
+</section>
+</div>
+
 <script>
 const products=[
  ["P001","Tomoro Aren Latte",25000],
@@ -57,164 +121,119 @@ const products=[
  ["P007","Matcha Latte",30000]
 ];
 const KEY="tomoro_event_pos_offline_v1";
+const CASHIER_KEY="tomoro_event_pos_cashier_v1";
+const APPS_SCRIPT_URL="https://script.google.com/macros/s/AKfycbxEKfl9XlMUho2oNDRnFSQUEd-ra81WQsXpXfJ76C_AhSKAllWKx0BQ12wNpVCeed2cNg/exec";
 let cart={};
-const rupiah=n=>"Rp"+Number(n).toLocaleString("id-ID");
-function renderMenu(){
- document.getElementById("menu").innerHTML=products.map(p=>
- `<button class="item" onclick="add('${p[0]}')">${p[1]}<small>${rupiah(p[2])}</small></button>`
- ).join("");
-}
-function add(id){cart[id]=(cart[id]||0)+1;renderCart();}
-function change(id,d){cart[id]=(cart[id]||0)+d;if(cart[id]<=0)delete cart[id];renderCart();}
-function getTotal(){return products.reduce((s,p)=>s+p[2]*(cart[p[0]]||0),0);}
+let syncRunning=false;
+const rupiah=n=>"Rp"+Number(n||0).toLocaleString("id-ID");
+function readTransactions(){try{const x=JSON.parse(localStorage.getItem(KEY)||"[]");return Array.isArray(x)?x:[]}catch(e){return []}}
+function saveTransactions(x){localStorage.setItem(KEY,JSON.stringify(x))}
+function renderMenu(){document.getElementById("menu").innerHTML=products.map(p=>`<button class="item" onclick="add('${p[0]}')">${p[1]}<small>${rupiah(p[2])}</small></button>`).join("")}
+function add(id){cart[id]=(cart[id]||0)+1;renderCart()}
+function change(id,d){cart[id]=(cart[id]||0)+d;if(cart[id]<=0)delete cart[id];renderCart()}
+function getTotal(){return products.reduce((s,p)=>s+p[2]*(cart[p[0]]||0),0)}
 function renderCart(){
- const rows=products.filter(p=>cart[p[0]]).map(p=>
- `<div class="row"><div>${p[1]}<br><small>${rupiah(p[2])} × ${cart[p[0]]}</small></div>
- <div class="qty"><button onclick="change('${p[0]}',-1)">−</button>
- <button onclick="change('${p[0]}',1)">+</button></div></div>`
- ).join("");
+ const rows=products.filter(p=>cart[p[0]]).map(p=>`<div class="row"><div><strong>${p[1]}</strong><br><small>${rupiah(p[2])} × ${cart[p[0]]} = ${rupiah(p[2]*cart[p[0]])}</small></div><div class="qty"><button aria-label="Kurangi" onclick="change('${p[0]}',-1)">−</button><strong>${cart[p[0]]}</strong><button aria-label="Tambah" onclick="change('${p[0]}',1)">+</button></div></div>`).join("");
  document.getElementById("cart").innerHTML=rows||"<p>Belum ada item.</p>";
- document.getElementById("total").textContent=rupiah(getTotal());
+ document.getElementById("total").textContent=rupiah(getTotal());renderChange();
 }
-function clearCart(){cart={};renderCart();document.getElementById("notice").textContent="Keranjang dikosongkan.";}
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxEKfl9XlMUho2oNDRnFSQUEd-ra81WQsXpXfJ76C_AhSKAllWKx0BQ12wNpVCeed2cNg/exec";
-
-let syncRunning = false;
-
-function syncPendingTransactions() {
-  if (!navigator.onLine || syncRunning) return;
-
-  const saved = JSON.parse(localStorage.getItem(KEY) || "[]");
-  const pending = saved.find(tx => !tx.synced);
-
-  if (!pending) return;
-
-  syncRunning = true;
-
-  const payload = {
-    transactionId: pending.id,
-    paymentMethod: pending.payment,
-    items: pending.items.map(item => ({
-      id: item.id,
-      qty: item.qty
-    })),
-    cashReceived: pending.cash,
-    cashier: "KASIR"
-  };
-
-  const callbackName = "tomoroSyncCallback";
-
-  window[callbackName] = function(result) {
-    delete window[callbackName];
-    script.remove();
-    syncRunning = false;
-
-    if (result && result.success === true) {
-      const latest = JSON.parse(localStorage.getItem(KEY) || "[]");
-      const transaction = latest.find(tx => tx.id === pending.id);
-
-      if (transaction) {
-        transaction.synced = true;
-        localStorage.setItem(KEY, JSON.stringify(latest));
-      }
-
-      document.getElementById("notice").textContent =
-        "Transaksi berhasil disinkronkan ke Spreadsheet.";
-
-      syncPendingTransactions();
-    } else {
-      document.getElementById("notice").textContent =
-        "Sinkronisasi gagal. Transaksi tetap tersimpan di perangkat.";
-    }
-  };
-
-  const script = document.createElement("script");
-  const params = new URLSearchParams({
-    action: "sync",
-    callback: callbackName,
-    payload: JSON.stringify(payload)
-  });
-
-  script.src = APPS_SCRIPT_URL + "?" + params.toString();
-
-  script.onerror = function() {
-    delete window[callbackName];
-    script.remove();
-    syncRunning = false;
-
-    document.getElementById("notice").textContent =
-      "Gagal terhubung ke Spreadsheet. Transaksi tetap tersimpan di perangkat.";
-  };
-
-  document.body.appendChild(script);
+function clearCart(){cart={};renderCart();document.getElementById("cash").value="";notice("Keranjang dikosongkan.")}
+function paymentChanged(){document.getElementById("cashArea").classList.toggle("hidden",document.getElementById("payment").value!=="CASH");renderChange()}
+function renderChange(){const total=getTotal(),cash=Number(document.getElementById("cash").value||0);document.getElementById("change").textContent=rupiah(Math.max(0,cash-total))}
+function notice(msg){document.getElementById("notice").textContent=msg}
+function checkout(){
+ if(!Object.keys(cart).length){alert("Pilih menu terlebih dahulu.");return}
+ const cashier=document.getElementById("cashier").value.trim();
+ if(!cashier){alert("Masukkan nama kasir terlebih dahulu.");document.getElementById("cashier").focus();return}
+ const payment=document.getElementById("payment").value,total=getTotal();
+ const cash=payment==="CASH"?Number(document.getElementById("cash").value||0):total;
+ if(payment==="CASH"&&cash<total){alert("Uang diterima kurang dari total.");return}
+ const tx={id:"OFF-"+Date.now()+"-"+Math.random().toString(36).slice(2,8),time:new Date().toISOString(),payment,items:products.filter(p=>cart[p[0]]).map(p=>({id:p[0],name:p[1],price:p[2],qty:cart[p[0]]})),total,cash,change:payment==="CASH"?cash-total:0,cashier,synced:false};
+ const saved=readTransactions();saved.push(tx);saveTransactions(saved);localStorage.setItem(CASHIER_KEY,cashier);
+ cart={};renderCart();document.getElementById("cash").value="";
+ notice("Transaksi "+tx.id+" tersimpan di perangkat. Menyiapkan sinkronisasi…");
+ renderHistory();renderRecap();syncPendingTransactions();
+ alert("Transaksi tersimpan di perangkat.\nID: "+tx.id+"\nTotal: "+rupiah(total));
 }
-
-window.addEventListener("online", syncPendingTransactions);
-function checkout() {
-  if (!Object.keys(cart).length) {
-    alert("Pilih menu terlebih dahulu.");
-    return;
+function syncPendingTransactions(){
+ if(!navigator.onLine||syncRunning)return;
+ const saved=readTransactions(),pending=saved.find(tx=>!tx.synced);
+ updateSyncBadge();
+ if(!pending)return;
+ syncRunning=true;
+ const payload={transactionId:pending.id,paymentMethod:pending.payment,items:pending.items.map(item=>({id:item.id,qty:item.qty})),cashReceived:pending.cash,cashier:pending.cashier||"KASIR"};
+ const callbackName="tomoroSyncCallback_"+Date.now();
+ let script=document.createElement("script"),finished=false;
+ const finish=()=>{if(finished)return;finished=true;delete window[callbackName];script.remove();syncRunning=false};
+ window[callbackName]=function(result){
+  finish();
+  if(result&&result.success===true){
+   const latest=readTransactions(),tx=latest.find(t=>t.id===pending.id);
+   if(tx){tx.synced=true;tx.syncedAt=new Date().toISOString();saveTransactions(latest)}
+   notice("Transaksi "+pending.id+" berhasil disinkronkan ke Spreadsheet.");
+   renderHistory();renderRecap();updateSyncBadge();
+   setTimeout(syncPendingTransactions,150);
+  }else{
+   notice("Sinkronisasi gagal. Transaksi tetap tersimpan di perangkat. Periksa koneksi atau Apps Script.");
+   renderHistory();renderRecap();updateSyncBadge();
   }
-
-  const payment = document.getElementById("payment").value;
-  const total = getTotal();
-  const cash = payment === "CASH"
-    ? Number(document.getElementById("cash").value || 0)
-    : total;
-
-  if (payment === "CASH" && cash < total) {
-    alert("Uang diterima kurang dari total.");
-    return;
-  }
-
-  const tx = {
-    id: "OFF-" + Date.now() + "-" +
-      Math.random().toString(36).slice(2, 8),
-    time: new Date().toISOString(),
-    payment: payment,
-    items: products
-      .filter(p => cart[p[0]])
-      .map(p => ({
-        id: p[0],
-        name: p[1],
-        price: p[2],
-        qty: cart[p[0]]
-      })),
-    total: total,
-    cash: cash,
-    change: cash - total,
-    synced: false
-  };
-
-  const saved = JSON.parse(localStorage.getItem(KEY) || "[]");
-  saved.push(tx);
-  localStorage.setItem(KEY, JSON.stringify(saved));
-
-  cart = {};
-  renderCart();
-  document.getElementById("cash").value = "";
-
-  document.getElementById("notice").textContent =
-    "Transaksi tersimpan di perangkat. Menyiapkan sinkronisasi...";
-
-  alert("Transaksi tersimpan di perangkat.");
-
-  syncPendingTransactions();
+ };
+ const params=new URLSearchParams({action:"sync",callback:callbackName,payload:JSON.stringify(payload)});
+ script.src=APPS_SCRIPT_URL+"?"+params.toString();
+ script.onerror=function(){finish();notice("Gagal terhubung ke Spreadsheet. Transaksi tetap tersimpan di perangkat.");renderHistory();renderRecap();updateSyncBadge()};
+ document.body.appendChild(script);
+ // Timeout guard: prevents the interface from becoming stuck if the endpoint does not respond.
+ setTimeout(()=>{if(!finished){finish();notice("Sinkronisasi belum mendapat respons. Transaksi tetap tersimpan; coba sinkronkan lagi saat koneksi stabil.");updateSyncBadge()}},20000);
 }
-renderMenu();renderCart();
-document.getElementById("status").textContent=navigator.onLine?"Online":"Offline";
-window.addEventListener("online",()=>document.getElementById("status").textContent="Online");
-window.addEventListener("offline",()=>document.getElementById("status").textContent="Offline");
-</script>
-
-<script>
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/tomoro-event-pos/sw.js")
-      .then(() => console.log("Service Worker aktif"))
-      .catch((error) => console.error("Service Worker gagal:", error));
-  });
+function updateSyncBadge(){
+ const pending=readTransactions().filter(t=>!t.synced).length;
+ document.getElementById("status").textContent=(navigator.onLine?"Online":"Offline")+" · "+pending+" tertunda";
 }
+function showTab(tab){
+ ["kasir","riwayat","rekap"].forEach(t=>{document.getElementById("view"+t.charAt(0).toUpperCase()+t.slice(1)).classList.toggle("hidden",t!==tab);document.getElementById("tab"+t.charAt(0).toUpperCase()+t.slice(1)).classList.toggle("active",t===tab)});
+ if(tab==="riwayat")renderHistory();if(tab==="rekap")renderRecap();
+}
+function dateText(iso){const d=new Date(iso);return isNaN(d)?String(iso||"-"):d.toLocaleString("id-ID",{dateStyle:"short",timeStyle:"short"})}
+function renderHistory(){
+ const q=(document.getElementById("search").value||"").toLowerCase();
+ const txs=readTransactions().slice().reverse().filter(tx=>{
+  const detail=(tx.items||[]).map(i=>(i.name||productName(i.id))+" x"+i.qty).join(" ");
+  return [tx.id,tx.payment,tx.cashier,detail].join(" ").toLowerCase().includes(q)
+ });
+ document.getElementById("historyRows").innerHTML=txs.map(tx=>{
+  const detail=(tx.items||[]).map(i=>`${escapeHtml(i.name||productName(i.id))} × ${i.qty}`).join("<br>");
+  const status=tx.synced?'<span class="pill ok">Tersinkron</span>':'<span class="pill pending">Tertunda</span>';
+  // Synced transactions cannot be deleted here because deleting local data would not remove the Spreadsheet row.
+  const action=tx.synced?'<button class="action" disabled title="Data Spreadsheet tidak dihapus oleh tombol ini">Tersinkron</button>':`<button class="action danger" onclick="deleteLocalTransaction('${escapeAttr(tx.id)}')">Hapus lokal</button>`;
+  return `<tr><td>${dateText(tx.time)}</td><td>${escapeHtml(tx.id)}</td><td>${detail}</td><td>${escapeHtml(tx.payment)}</td><td>${rupiah(tx.total)}</td><td>${escapeHtml(tx.cashier||"KASIR")}</td><td>${status}</td><td>${action}</td></tr>`;
+ }).join("")||'<tr><td colspan="8">Belum ada transaksi yang cocok.</td></tr>';
+}
+function deleteLocalTransaction(id){
+ const txs=readTransactions(),tx=txs.find(t=>t.id===id);
+ if(!tx)return;
+ if(tx.synced){alert("Transaksi sudah tersinkron. Hapus dari Spreadsheet melalui prosedur yang sesuai; penghapusan lokal tidak akan menghapus data Spreadsheet.");return}
+ if(!confirm("Hapus transaksi tertunda ini dari perangkat? Transaksi ini belum tersinkron ke Spreadsheet."))return;
+ saveTransactions(txs.filter(t=>t.id!==id));renderHistory();renderRecap();updateSyncBadge();notice("Transaksi tertunda dihapus dari perangkat.");
+}
+function renderRecap(){
+ const txs=readTransactions(),cash=txs.filter(t=>t.payment==="CASH"),qris=txs.filter(t=>t.payment==="QRIS"),sum=a=>a.reduce((s,t)=>s+Number(t.total||0),0);
+ document.getElementById("sumCount").textContent=txs.length;
+ document.getElementById("sumTotal").textContent=rupiah(sum(txs));
+ document.getElementById("sumPending").textContent=txs.filter(t=>!t.synced).length;
+ document.getElementById("cashCount").textContent=cash.length;
+ document.getElementById("cashTotal").textContent=rupiah(sum(cash));
+ document.getElementById("qrisTotal").textContent=rupiah(sum(qris));
+ document.getElementById("qrisCount").textContent=qris.length+" transaksi";
+ document.getElementById("recapNotice").textContent="Terakhir diperbarui: "+new Date().toLocaleString("id-ID")+". Angka ini hanya dari transaksi yang masih tersimpan di perangkat.";
+}
+function productName(id){const p=products.find(x=>x[0]===id);return p?p[1]:id}
+function escapeHtml(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function escapeAttr(s){return String(s??"").replace(/[^A-Za-z0-9_-]/g,"")}
+document.getElementById("cashier").value=localStorage.getItem(CASHIER_KEY)||"";
+renderMenu();renderCart();paymentChanged();renderHistory();renderRecap();updateSyncBadge();
+window.addEventListener("online",()=>{updateSyncBadge();notice("Internet terdeteksi. Memeriksa transaksi yang tertunda…");syncPendingTransactions()});
+window.addEventListener("offline",()=>{updateSyncBadge();notice("Mode offline aktif. Transaksi akan disimpan di perangkat.")});
+if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("/tomoro-event-pos/sw.js").then(()=>console.log("Service Worker aktif")).catch(e=>console.error("Service Worker gagal:",e)))}
 </script>
 </body>
 </html>
