@@ -40,12 +40,12 @@ const STORAGE_KEY='tomoro_event_pos_offline_v1';
 const CASHIER_KEY='tomoro_event_pos_cashier_v1';
 const PRODUCTS=[
 {id:'P001',name:'Tomoro Aren Latte',category:'COFFEE',price:25000},
-{id:'P002',name:'Americano',category:'COFFEE',price:22000},
-{id:'P003',name:'Caffe Latte',category:'COFFEE',price:28000},
-{id:'P004',name:'Cappuccino',category:'COFFEE',price:28000},
-{id:'P005',name:'Peach Americano',category:'COFFEE',price:23000},
-{id:'P006',name:'Chocolate',category:'NON COFFEE',price:28000},
-{id:'P007',name:'Matcha Latte',category:'NON COFFEE',price:30000}
+{id:'P002',name:'Americano',category:'COFFEE',price:19000},
+{id:'P003',name:'Caffe Latte',category:'COFFEE',price:29000},
+{id:'P004',name:'Cappuccino',category:'COFFEE',price:29000},
+{id:'P005',name:'Peach Americano',category:'COFFEE',price:24000},
+{id:'P006',name:'Chocolate',category:'NON COFFEE',price:29000},
+{id:'P007',name:'Matcha Latte',category:'NON COFFEE',price:29000}
 ];
 const $=id=>document.getElementById(id);const rupiah=n=>'Rp'+Math.round(Number(n)||0).toLocaleString('id-ID');
 let cart={};let paymentMethod='CASH';let lastReceipt=null;let remoteHistory=[];let serverSummary=null;let stateRequestRunning=false;let syncRunning=false;
